@@ -7,7 +7,7 @@ const { title = "Mona's Bookmark Manager App" } = Astro.props;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
-    <style>
+    <style is:global>
       /* Monaspace webfonts (GitHub Next, SIL OFL 1.1) self-hosted from /public/fonts.
          Neon carries body text; Xenon gives headings a touch of contrast.
          Self-hosting keeps the app fully offline-capable — no runtime CDN needed;
@@ -88,16 +88,21 @@ const { title = "Mona's Bookmark Manager App" } = Astro.props;
       input:focus-visible,
       button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
       button {
-        padding: 0.6rem 1rem;
-        border: 1px solid transparent;
+        padding: 0.8rem 1.6rem;
+        border: 1px solid #d0d7de;
         border-radius: var(--radius);
-        background: var(--accent);
-        color: #fff;
+        background: #fff;
+        color: #1f2328;
         font: inherit;
-        font-weight: 600;
+        font-size: 1rem;
+        font-weight: 700;
+        letter-spacing: 0.01em;
         cursor: pointer;
+        box-shadow: 0 1px 2px #0003, 0 4px 12px #0000001f;
+        transition: transform 0.12s ease, box-shadow 0.12s ease;
       }
-      button:hover { filter: brightness(1.05); }
+      button:hover { transform: translateY(-1px); box-shadow: 0 2px 4px #0003, 0 8px 18px #00000030; }
+      button:active { transform: translateY(0); box-shadow: 0 1px 2px #0003; }
       .hint { margin: 0 0 1.5rem; font-size: 0.8rem; color: var(--muted); }
 
       #list-header {
@@ -116,7 +121,8 @@ const { title = "Mona's Bookmark Manager App" } = Astro.props;
         font-size: 0.8rem;
         font-weight: 500;
       }
-      .clear:hover { border-color: currentColor; }
+      .clear { box-shadow: none; }
+      .clear:hover { border-color: currentColor; transform: none; box-shadow: none; }
 
       ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.5rem; }
       li.bookmark {
@@ -139,6 +145,7 @@ const { title = "Mona's Bookmark Manager App" } = Astro.props;
         background: color-mix(in srgb, var(--accent) 18%, transparent);
       }
       .bookmark .copy {
+        box-shadow: none;
         margin-left: auto;
         background: transparent;
         color: inherit;
