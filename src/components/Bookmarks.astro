@@ -1,13 +1,6 @@
 ---
-// Bookmarks component (scaffold).
-//
-// The markup below renders during the static build. The dynamic behavior —
-// adding a bookmark, generating a short slug, and persisting to the browser —
-// must run ONLY in the client-side <script> boundary at the bottom of this
-// file. Astro runs that script in the browser, never during the build, so
-// browser-only APIs are safe there.
-//
-// You will implement the behavior in Step 3.
+// Bookmarks component. Markup renders at build time; all browser-only
+// behavior (localStorage) lives in the client <script> below.
 ---
 <form id="add-bookmark">
   <div class="field">
@@ -60,11 +53,108 @@
   //   7. On page load, read the saved bookmarks from storage and render
   //      them so the list persists across reloads.
   //
-  // Because this code lives in a client <script>, browser storage APIs are
-  // safe to use here without breaking the static build.
-  const form = document.getElementById('add-bookmark');
+  // Because this code lives in a client <script>
+  import {
+    loadBookmarks,
+    saveBookmarks,
+    createBookmark,
+    formatBookmark,
+    STORAGE_KEY,
+  } from '../lib/bookmarks.ts';
+
+  const form = document.getElementById('add-bookmark') as HTMLFormElement | null;
+  const input = document.getElementById('url') as HTMLInputElement | null;
+  const list = document.getElementById('bookmark-list');
+  const empty = document.getElementById('empty-state');
+  const header = document.getElementById('list-header');
+  const clearAll = document.getElementById('clear-all');
+  const hint = document.querySelector('.hint');
+  const defaultHint = hint?.innerHTML ?? '';
+
+  const getStorage = () => {
+    try { return window.localStorage; } catch { return undefined; }
+  };
+
+  let bookmarks = loadBookmarks(getStorage());
+
+  function render() {
+    if (!list) return;
+    list.replaceChildren();
+    for (const b of bookmarks) {
+      const li = document.createElement('li');
+      li.className = 'bookmark';
+      li.setAttribute('aria-label', formatBookmark(b));
+
+      const a = document.createElement('a');
+      a.className = 'url';
+      a.href = b.url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = b.url;
+
+      const sep = document.createElement('span');
+      sep.className = 'sep';
+      sep.textContent = ' :: ';
+
+      const slug = document.createElement('span');
+      slug.className = 'slug';
+      slug.textContent = b.slug;
+
+      const copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'copy';
+      copy.textContent = 'Copy';
+      copy.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(b.slug);
+          copy.textContent = 'Copied!';
+        } catch {
+          copy.textContent = 'Copy failed';
+        }
+        setTimeout(() => { copy.textContent = 'Copy'; }, 1500);
+      });
+
+      li.append(a, sep, slug, copy);
+      list.append(li);
+    }
+    const has = bookmarks.length > 0;
+    if (empty) empty.hidden = has;
+    if (header) header.hidden = !has;
+  }
+
+  function message(text: string) {
+    if (hint) hint.textContent = text;
+  }
+
   form?.addEventListener('submit', (event) => {
-    event.preventDefault(); // keep this — stops the page from reloading
-    // Implement in Step 3.
+    event.preventDefault(); // must stay first: stops the page from reloading
+    try {
+      const bookmark = createBookmark(input?.value, bookmarks);
+      if (!bookmark) {
+        message('That does not look like a valid web address. Try something like example.com.');
+        input?.focus();
+        return;
+      }
+      bookmarks = [...bookmarks, bookmark];
+      if (!saveBookmarks(getStorage(), bookmarks)) {
+        message('Saved for this visit only: your browser blocked storage.');
+      } else {
+        if (hint) hint.innerHTML = defaultHint;
+      }
+      if (input) input.value = '';
+      render();
+    } catch (err) {
+      console.error('Could not add bookmark', err);
+      message('Something went wrong adding that bookmark.');
+    }
   });
+
+  clearAll?.addEventListener('click', () => {
+    if (!window.confirm('Remove all saved bookmarks?')) return;
+    bookmarks = [];
+    try { getStorage()?.removeItem(STORAGE_KEY); } catch { /* ignore */ }
+    render();
+  });
+
+  render();
 </script>
